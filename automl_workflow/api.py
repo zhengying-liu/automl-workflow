@@ -1,3 +1,8 @@
+"""API design for a universal AutoML workflow."""
+
+from typing import List, Tuple, Dict
+
+
 class IterableDataset(object):
     """Should be compatible with tf.data.Dataset, NumPy and 
     torch.utils.data.Dataset
@@ -11,10 +16,25 @@ class IterableDataset(object):
         """
         raise NotImplementedError
 
+    def generate_train_test_split(self, train_size=0.75) \
+        -> Tuple[IterableDataset, IterableDataset]:
+        """Generate trai/test split from this dataset.
+        
+        Args:
+          train_size: float or int, If float, should be between 0.0 and 1.0 and 
+            represent the proportion of the dataset to include in the train 
+            split. If int, represents the absolute number of train samples.
+
+        Returns:
+          A tuple `(dataset_train, dataset_test)` where both `dataset_train`
+            and `dataset_test` are IterableDataset objects.
+        """
+        raise NotImplementedError
+
 
 class FeatureUnion(IterableDataset):
 
-    def __init__(self, datasets):
+    def __init__(self, datasets: List[IterableDataset]):
         """Take a list of IterableDataset objects, return one single 
         IterableDataset object, which is the union.
         """
@@ -23,7 +43,7 @@ class FeatureUnion(IterableDataset):
 
 class DataIngestor(object):
 
-    def ingest(self, dataset):
+    def ingest(self, dataset) -> IterableDataset:
         """Take an AutoDL dataset object and ingest the data to an 
         IterableDataset object.
         """
@@ -32,15 +52,16 @@ class DataIngestor(object):
 
 class BaseDataTransformer(object):
 
-    def fit(self, dataset):
+    def fit(self, dataset: IterableDataset):
         """
         Args:
           dataset: IterableDataset object, e.g. training set
         """
         raise NotImplementedError
 
-    def transform(self, dataset):
+    def transform(self, dataset: IterableDataset) -> IterableDataset:
         """Transform an (iterable) dataset object into another dataset object.
+        Can also be used the `predict` method in scikit-learn.
 
         Args:
             dataset: IterableDataset object
@@ -53,19 +74,19 @@ class BaseDataTransformer(object):
 
 class DataLoader(BaseDataTransformer):
 
-    def transform(self, dataset):
+    def transform(self, dataset: IterableDataset) -> IterableDataset:
         raise NotImplementedError
 
 
 class DataAugmentor(BaseDataTransformer):
 
-    def transform(self, dataset):
+    def transform(self, dataset: IterableDataset) -> IterableDataset:
         raise NotImplementedError
 
 
 class Pipeline(BaseDataTransformer):
 
-    def __init__(self, transformers):
+    def __init__(self, transformers: List[BaseDataTransformer]):
         """Take a list of BaseDataTransformer objects, form one 
         BaseDataTransformer object by chaining them.
         """
@@ -75,22 +96,28 @@ class Pipeline(BaseDataTransformer):
 class HPOptimizer(object):
     """Adjust pipeline parameters in a data-driven way."""
 
-    def __init__(self, pipeline, params=None):
+    def __init__(self, pipeline: Pipeline, params: Dict=None):
         """
+
         Args:
           pipeline: Pipeline object
-          params: dict, e.g. {'transformer1': {'C':0.1, 'gamma':1.0}}
+          params: dict, e.g. {'transformer1': {'C':0.1, 'gamma':1.0}}. Initial
+            hyper-parameters values.
         """
-        pass
+        raise NotImplementedError
 
-    def fit(self, dataset):
-        """Adjust the parameters in the pipeline."""
-        return new_pipeline
+    def fit(self, dataset: IterableDataset) -> Pipeline:
+        """Adjust the parameters in the pipeline.
+
+        Returns:
+          a new Pipeline object with specified (hyper-)parameters.
+        """
+        raise NotImplementedError
 
 
 class Ensembler(object):
 
-    def fit(self, features, label):
+    def fit(self, features: List[IterableDataset], label: IterableDataset):
         """
         Args:
           features: list of IterableDataset objects. Can be predictions from 
@@ -99,7 +126,7 @@ class Ensembler(object):
         """
         raise NotImplementedError
 
-    def predict(self, test_features):
+    def predict(self, test_features: List[IterableDataset]) -> IterableDataset:
         """
         Args:
           test_features: list of IterableDataset objects
@@ -110,8 +137,8 @@ class Ensembler(object):
         raise NotImplementedError
 
 
-# Multiple transformers form a pipeline
-# Multiple pipelines form an ensemble
+# Multiple transformers form a pipeline (by chaining)
+# Multiple pipelines form an ensemble (in parallel)
 
 
 class Model(object):
@@ -120,7 +147,7 @@ class Model(object):
               ensembler=None, hpoptimizer_cls=None):
         # Forming pipeline using multiple transformers
         pipeline = Pipeline([data_loader, data_augmentor])
-        train_dataset, valid_dataset = train_valid_split(dataset)
+        train_dataset, valid_dataset =dataset.generate_train_test_split()
 
         # HPO
         hpoptimizer = hpoptimizer_cls(pipeline)
