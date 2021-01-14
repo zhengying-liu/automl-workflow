@@ -422,10 +422,10 @@ class Model(LogicModel):
             states = self.checkpoints[best_idx]['model']
             model.load_state_dict(states)
         
-
         num_step = len(dataloader) if num_step is None else num_step
 
         model.eval()
+
         with torch.no_grad():
             predictions = []
             for step, (examples, labels) in zip(range(num_step), dataloader):
@@ -460,7 +460,7 @@ class Model(LogicModel):
                     'pred': predictions,
                 }            
                 self.results.append(result)
-
+        
 
         if 5 < self.info['loop']['test'] <= 10:
             results = self.results[-2:]
@@ -472,6 +472,7 @@ class Model(LogicModel):
             res = np.mean(predictions, axis=0)
         else:
             res = predictions
-        self.last_best_score = best_score    
+        self.last_best_score = best_score
+
         return res
 

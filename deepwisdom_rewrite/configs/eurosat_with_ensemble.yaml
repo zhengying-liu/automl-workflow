@@ -1,0 +1,47 @@
+autocv:
+  checkpoints:
+    keep: 50
+  conditions:
+    early_epoch: 3
+    first_simple_model: false
+    max_inner_loop_ratio: 0.15772304047936692
+    min_lr: 1.0e-06
+    output_majority_first: false
+    score_type: auc
+    simple_model: RF
+    skip_valid_score_threshold: 0.8544148022673552
+    test_after_at_least_seconds: 3
+    test_after_at_least_seconds_max: 109
+    test_after_at_least_seconds_step: 8
+    threshold_valid_best_score: 0.997
+    threshold_valid_score_diff: 0.001
+    use_fast_auto_aug: true
+    use_test_ensemble: true
+  dataset:
+    base: 16
+    batch_size: 64
+    batch_size_test: 256
+    cv_valid_ratio: 0.1780244142837636
+    enough_count:
+      image: 10000
+      video: 1000
+    max_epoch: 1000
+    max_size: 64
+    max_times: 8
+    max_valid_count: 217
+    steps_per_epoch: 15
+    train_info_sample: 331
+  model:
+    architecture: ResNet18
+  optimizer:
+    amsgrad: true
+    freeze_portion: 0.30000000000000004
+    lr: 0.00025337153740135195
+    min_lr: 1.457163607105083e-06
+    momentum: 0.9
+    nesterov: true
+    scheduler: plateau
+    type: AdamW
+    warm_up_epoch: 5
+    warmup_multiplier: 3.0
+    wd: 1.5632542429826833e-05
