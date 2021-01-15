@@ -45,8 +45,25 @@ class LogicModel(Model):
         }
 
         # 支持导入配置文件，可修改config_path
-        # config_path = 'AutoDL_sample_code_submission/configs/effnet_optimized_per_dataset_new_cs_new_data_03_14/Munster.yaml'
-        config_path = 'AutoDL_sample_code_submission/configs/config1.yaml'
+        # 配置时修改下列三行：
+        use_freiburg_params = True
+        use_ensemble = True        
+        dataset_name = 'Hammer' # Munster, City, Chucky, Pedro, Decal, Hammer
+        
+        # 通过dataset名字匹配配置文件名(无需修改)
+        dataset_to_yaml_dict = {
+            'Munster' : 'hammer',
+            'City' : 'cifar10', 
+            'Chucky' : 'eurosat',
+            'Pedro' : 'eurosat',
+            'Decal' : 'hammer',
+            'Hammer' : 'eurosat'
+        }
+        yaml_name = dataset_to_yaml_dict[dataset_name] if use_freiburg_params else 'deepwisdom'
+        if use_ensemble:
+            yaml_name += '_with_ensemble'
+
+        config_path = 'AutoDL_sample_code_submission/configs/{}.yaml'.format(yaml_name)
         default_path = 'AutoDL_sample_code_submission/configs/config1.yaml'
         print('Path: ', config_path)
 
@@ -334,7 +351,6 @@ class LogicModel(Model):
         expected_more_time = (self.timers['test'].step_time + (self.timers['train'].step_time * 2)) * 1.5
         if remaining_time_budget is not None and \
                 remaining_time_budget - early_term_budget < expected_more_time:
-
             self.info['terminate'] = True
             self.done_training = True
             return True
@@ -370,7 +386,6 @@ class LogicModel(Model):
             self.info['terminate'] = True
             self.done_training = done
             return True
-
         return False
 
     def get_total_time(self):
