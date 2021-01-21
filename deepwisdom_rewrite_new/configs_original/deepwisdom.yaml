@@ -1,0 +1,42 @@
+# Dataset: any dataset from autocv
+# Combine test ensembling from DeepBlueAI and
+# hyperparameters from DeepWisdom
+autocv:
+  checkpoints:
+    keep: 50
+  conditions:
+    early_epoch: 1
+    max_inner_loop_ratio: 0.2
+    min_lr: 1.0e-06
+    score_type: auc
+    skip_valid_score_threshold: 0.90
+    test_after_at_least_seconds: 1
+    test_after_at_least_seconds_max: 90
+    test_after_at_least_seconds_step: 2
+    threshold_valid_best_score: 0.997
+    threshold_valid_score_diff: 0.001
+    use_fast_auto_aug: true
+    # add test ensemble configuration
+    use_test_ensemble: false
+  dataset:
+    base: 16
+    batch_size: 32
+    batch_size_test: 64
+    cv_valid_ratio: 0.1
+    enough_count:
+      image: 10000
+    max_epoch: 1000
+    max_size: 64
+    max_times: 8
+    max_valid_count: 256
+    steps_per_epoch: 30
+    train_info_sample: 256
+  optimizer:
+    lr: 0.05
+    momentum: 0.9
+    nesterov: true
+    scheduler: plateau
+    type: SGD
+    warm_up_epoch: 5
+    warmup_multiplier: 2.0
+    wd: 0.00025
