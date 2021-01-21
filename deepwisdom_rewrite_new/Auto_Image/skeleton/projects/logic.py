@@ -32,8 +32,6 @@ class LogicModel(Model):
     def __init__(self, metadata, session=None):
         super(LogicModel, self).__init__(metadata)
 
-        ### 导入预训练模型
-        model_fn = "submission/AutoFolio/af_model_final.pkl"
 
         test_metadata_filename = self.metadata.get_dataset_name().replace('train', 'test') + '/metadata.textproto'
         self.num_test = [int(line.split(':')[1]) for line in open(test_metadata_filename, 'r').readlines()[:3] if
@@ -65,37 +63,55 @@ class LogicModel(Model):
             'terminate': False
         }
 
-        train_metadata_filename = self.metadata.get_dataset_name() + '/metadata.textproto'
-        num_train = \
-        [int(line.split(':')[1]) for line in open(train_metadata_filename, 'r').readlines()[:3] if
-            'sample_count' in line][0]
-        LOGGER.info('num_test:  %d', num_train)
 
-        _, resolution_0, _, num_channels = self.metadata.get_tensor_shape()
-        num_classes = self.info['dataset']['num_class']
-        feature = [num_channels, num_classes, num_train, resolution_0]
-
-        pred_config_name = AFCsvFacade.load_and_predict(vec=np.array(feature), load_fn=model_fn)
-
-        LOGGER.info("AF suggesting to use config: {}".format(pred_config_name))
-
-        config_path = Path(
-            "configs", "effnet_optimized_per_dataset_new_cs_new_data_03_14", pred_config_name
-        ).with_suffix(".yaml")
+        ### 配置测试需求 ###
+        USE_DEEPBLUE_ENSEMBLE = True 
+        USE_FREIBURG_PARAMS = True 
 
 
-        try:
+        if USE_FREIBURG_PARAMS:
+            ### 导入预训练模型
+            model_fn = "submission/AutoFolio/af_model_final.pkl"
+
+            train_metadata_filename = self.metadata.get_dataset_name() + '/metadata.textproto'
+            num_train = \
+            [int(line.split(':')[1]) for line in open(train_metadata_filename, 'r').readlines()[:3] if
+                'sample_count' in line][0]
+            LOGGER.info('num_test:  %d', num_train)
+
+            _, resolution_0, _, num_channels = self.metadata.get_tensor_shape()
+            num_classes = self.info['dataset']['num_class']
+            feature = [num_channels, num_classes, num_train, resolution_0]
+
+            pred_config_name = AFCsvFacade.load_and_predict(vec=np.array(feature), load_fn=model_fn)
+
+            LOGGER.info("AF suggesting to use config: {}".format(pred_config_name))
+
+            config_path = Path(
+                "configs", "effnet_optimized_per_dataset_new_cs_new_data_03_14", pred_config_name
+            ).with_suffix(".yaml")
+
+
+            try:
+                with config_path.open() as in_stream:
+                    model_config = yaml.safe_load(in_stream)
+            except:
+                with config_path.with_name("default.yaml").open() as in_stream:
+                    model_config = yaml.safe_load(in_stream)
+        else:
+            # Use Deepwisdom Config
+            config_path = 'submission/configs_original/deepwisdom.yaml'
             with config_path.open() as in_stream:
-                model_config = yaml.safe_load(in_stream)
-        except:
-            with config_path.with_name("default.yaml").open() as in_stream:
                 model_config = yaml.safe_load(in_stream)
 
 
         self.hyper_params = model_config["autocv"]
         skip_valid_after_test = min(10, max(3, int(self.info['dataset']['size'] // 1000)))
         self.hyper_params["conditions"]["skip_valid_after_test"] = skip_valid_after_test
+        # 新增 ensembling 配置
+        self.use_test_ensemble = USE_DEEPBLUE_ENSEMBLE
         # 生成hyper_params结束        
+
 
         self.checkpoints = []
 

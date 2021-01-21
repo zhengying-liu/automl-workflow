@@ -16,8 +16,6 @@ autocv:
     threshold_valid_best_score: 0.997
     threshold_valid_score_diff: 0.001
     use_fast_auto_aug: true
-    # add test ensemble configuration
-    use_test_ensemble: false
   dataset:
     base: 16
     batch_size: 32
