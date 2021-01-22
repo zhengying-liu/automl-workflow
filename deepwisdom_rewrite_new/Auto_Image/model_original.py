@@ -1,4 +1,3 @@
-# Revised AutoCV Model that supports the combination of solution from the winning teams. 
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import os
@@ -12,10 +11,8 @@ import numpy as np
 
 import skeleton
 from architectures.resnet import ResNet9, ResNet18
-# add param test class
 from skeleton.projects import LogicModel, get_logger
 from skeleton.projects.others import AUC, five_crop
-
 
 torch.backends.cudnn.benchmark = True
 threads = [
@@ -25,7 +22,7 @@ threads = [
 [t.start() for t in threads]
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-LOGGER = get_logger(__name__)
+# LOGGER = get_logger(__name__)
 
 
 def set_random_seed_all(seed, deterministic=False):
@@ -91,92 +88,49 @@ class Model(LogicModel):
         self.model_pred.loss_fn = self.model.loss_fn
         self.init_opt()
 
-
     def init_opt(self):
         steps_per_epoch = self.hyper_params['dataset']['steps_per_epoch']
         batch_size = self.hyper_params['dataset']['batch_size']
 
         params = [p for p in self.model.parameters() if p.requires_grad]
-        params_fc = [
-            p for n, p in self.model.named_parameters()
-            if p.requires_grad and 'fc' == n[:2] or 'conv1d' == n[:6] or '_fc' == n[:3]
-        ]
-
-        feature_extractor_len = len([
-            p for n, p in self.model.named_parameters()
-            if p.requires_grad and 'fc' != n[:2] and 'conv1d' != n[:6] and '_fc' != n[:3]
-        ])
-
-        if 'freeze_portion' in self.hyper_params['optimizer']: 
-            # freiburg's freeze action
-            for c, (n, p) in enumerate(self.model.named_parameters()):
-                if c < int(self.hyper_params['optimizer']['freeze_portion']*feature_extractor_len):
-                    p.requires_grad = False
-
-        opt_type = self.hyper_params['optimizer']['type'] # of type str
+        params_fc = [p for n, p in self.model.named_parameters() if
+                     p.requires_grad and 'fc' == n[:2] or 'conv1d' == n[:6]]
+        params_not_fc = [p for n, p in self.model.named_parameters() if
+                         p.requires_grad and not ('fc' == n[:2] or 'conv1d' == n[:6])]
         init_lr = self.hyper_params['optimizer']['lr']
-        wd = self.hyper_params['optimizer']['wd']
-        momentum = self.hyper_params['optimizer']['momentum']
-        nesterov = self.hyper_params['optimizer']['nesterov']
-        amsgrad = self.hyper_params['optimizer']['amsgrad'] if 'amsgrad' in self.hyper_params['optimizer'] else None
-
-        warmup_multiplier = self.hyper_params['optimizer']['warmup_multiplier']
-        warm_up_epoch = self.hyper_params['optimizer']['warm_up_epoch']
+        warmup_multiplier = 2.0
         lr_multiplier = max(0.5, batch_size / 32)
-
-        if self.hyper_params['optimizer']['scheduler'] == 'plateau':
-            base_scheduler = skeleton.optim.get_reduce_on_plateau_scheduler(
-                init_lr * lr_multiplier / warmup_multiplier,
-                patience=10,
-                factor=.5,
-                metric_name='train_loss'
-            )
-        elif self.hyper_params['optimizer']['scheduler'] == 'cosine':
-            base_scheduler = skeleton.optim.get_cosine_scheduler(
-                init_lr * lr_multiplier / warmup_multiplier,
-                maximum_epoch=self.hyper_params['dataset']['max_epoch']
-            )
-
         scheduler_lr = skeleton.optim.get_change_scale(
             skeleton.optim.gradual_warm_up(
-                base_scheduler,
-                warm_up_epoch=warm_up_epoch,
+                skeleton.optim.get_reduce_on_plateau_scheduler(
+                    init_lr * lr_multiplier / warmup_multiplier,
+                    patience=10, factor=.5, metric_name='train_loss'
+                ),
+                warm_up_epoch=5,
                 multiplier=warmup_multiplier
             ),
             init_scale=1.0
         )
-
         self.optimizer_fc = skeleton.optim.ScheduledOptimizer(
             params_fc,
-            eval("torch.optim.{}".format(opt_type)),
-            # skeleton.optim.SGDW,
+            torch.optim.SGD,
             steps_per_epoch=steps_per_epoch,
             clip_grad_max_norm=None,
             lr=scheduler_lr,
-            momentum=momentum,
-            weight_decay=wd,
-            amsgrad=amsgrad,
-            nesterov=nesterov
+            momentum=0.9,
+            weight_decay=0.00025,
+            nesterov=True
         )
-
         self.optimizer = skeleton.optim.ScheduledOptimizer(
             params,
-            eval("torch.optim.{}".format(opt_type)),
-            # skeleton.optim.SGDW,
+            torch.optim.SGD,
             steps_per_epoch=steps_per_epoch,
             clip_grad_max_norm=None,
             lr=scheduler_lr,
-            momentum=momentum,
-            weight_decay=wd,
-            amsgrad=amsgrad,
-            nesterov=nesterov
+            momentum=0.9,
+            weight_decay=0.00025,
+            nesterov=True
         )
-
-        # LOGGER.info(
-        #     '[optimizer] %s (batch_size:%d)', self.optimizer._optimizer.__class__.__name__,
-        #     batch_size
-        # )
-
 
     def adapt(self, remaining_time_budget=None):
         epoch = self.info['loop']['epoch']
@@ -198,7 +152,6 @@ class Model(LogicModel):
                 valid_score > 0.01 and \
                 self.dataloaders['valid'] is not None and \
                 not self.update_transforms:
-
             self.update_transforms = True
             self.last_predict = None
             self.info['terminate'] = True
@@ -421,11 +374,10 @@ class Model(LogicModel):
 
             states = self.checkpoints[best_idx]['model']
             model.load_state_dict(states)
-        
+
         num_step = len(dataloader) if num_step is None else num_step
 
         model.eval()
-
         with torch.no_grad():
             predictions = []
             for step, (examples, labels) in zip(range(num_step), dataloader):
@@ -450,29 +402,4 @@ class Model(LogicModel):
                 predictions = np.concatenate(predictions, axis=0).astype(np.float)
             else:
                 predictions = torch.cat(predictions, dim=0)
-
-            # Combine ensemble option from DeepBlueAI. 
-            if not self.use_test_ensemble:
-                return predictions
-            else:    
-                result = {
-                    'valid_score': best_score,
-                    'pred': predictions,
-                }            
-                self.results.append(result)
-        
-
-        if 5 < self.info['loop']['test'] <= 10:
-            results = self.results[-2:]
-            predictions = np.array([v['pred'] for v in results]) # self.info['loop']['epoch'] self.info['loop']['test']
-            res = np.mean(predictions, axis=0)
-        elif self.info['loop']['test'] > 10: # self.hyper_params['conditions']['skip_valid_after_test']
-            self.results = self.results[-5:]
-            predictions = np.array([v['pred'] for v in self.results]) # self.info['loop']['epoch'] self.info['loop']['test']
-            res = np.mean(predictions, axis=0)
-        else:
-            res = predictions
-        self.last_best_score = best_score
-
-        return res
-
+        return predictions
