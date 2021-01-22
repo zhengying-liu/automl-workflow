@@ -1,8 +1,13 @@
+# Data
+*.zip
+*.pkl
+*.csv
+
 # Mac
 *.DS_Store
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
+*__pycache__*
 *.py[cod]
 *$py.class
 
@@ -25,7 +30,7 @@ var/
 wheels/
 pip-wheel-metadata/
 share/python-wheels/
-*.egg-info/
+*.egg-info/*
 .installed.cfg
 *.egg
 MANIFEST

@@ -46,7 +46,8 @@ class LogicModel(Model):
 
         # 支持导入配置文件，可修改config_path
         # config_path = 'AutoDL_sample_code_submission/configs/effnet_optimized_per_dataset_new_cs_new_data_03_14/Munster.yaml'
-        config_path = 'AutoDL_sample_code_submission/configs/config1.yaml'
+        # config_path = 'AutoDL_sample_code_submission/configs/config1.yaml'
+        config_path = 'AutoDL_sample_code_submission/configs/config_chucky_with_freiburg_params_and_ensemble.yaml'
         default_path = 'AutoDL_sample_code_submission/configs/config1.yaml'
         print('Path: ', config_path)
 
