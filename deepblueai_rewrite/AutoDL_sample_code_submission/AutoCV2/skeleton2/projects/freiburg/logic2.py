@@ -6,15 +6,27 @@ import tensorflow as tf
 import torchvision as tv
 import torch
 import numpy as np
-
-from .api import Model
-from .others import *
-import skeleton
-
 import yaml
+
+from .api2 import Model
+from .others2 import *
+import skeleton2
+
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedShuffleSplit
 
+from pathlib import Path
+os.system("pip install Cython")
+os.system("pip install pyyaml")
+os.system("pip install liac-arff")
+os.system("pip install scipy")
+os.system("pip install pandas")
+os.system("pip install ConfigSpace")
+os.system("pip install numpy==1.18.1")
+os.system("pip3 install numpy==1.18.1")
+import sys
+sys.path.append('/data-nbd/lige/lg_workdir/AutoDL/autodl_starting_kit_stable_1208/AutoDL_sample_code_submission')
+from AutoFolio.autofolio.facade.af_csv_facade import AFCsvFacade
 
 LOGGER = get_logger(__name__)
 
@@ -22,6 +34,22 @@ LOGGER = get_logger(__name__)
 class LogicModel(Model):
     def __init__(self, metadata, session=None):
         super(LogicModel, self).__init__(metadata)
+
+        # freiburg
+        perf_fn = str(Path(__file__).parents[4] / "perf_matrix.csv")
+        feat_fn = str(Path(__file__).parents[4] / "meta_features.csv")
+        af = AFCsvFacade(perf_fn=perf_fn, feat_fn=feat_fn)
+
+        config = {'StandardScaler': False, 'fgroup_all': True, 'imputer_strategy': 'mean', 'pca': False,
+                  'selector': 'PairwiseClassifier',
+                  'classifier': 'RandomForest', 'rf:bootstrap': False, 'rf:criterion': 'gini', 'rf:max_depth': 132,
+                  'rf:max_features': 'log2', 'rf:min_samples_leaf': 3, 'rf:min_samples_split': 3, 'rf:n_estimators': 68}
+
+        LOGGER.info('--------- Fitting AF model ----------')
+
+        # fit AF using a loaded configuration on all data!
+        af.fit(config=config)
+
         LOGGER.info('--------- Model.metadata ----------')
         LOGGER.info('path: %s', self.metadata.get_dataset_name())
         LOGGER.info('shape:  %s', self.metadata.get_tensor_size(0))
@@ -33,8 +61,8 @@ class LogicModel(Model):
         LOGGER.info('num_test:  %d', self.num_test)
 
         self.timers = {
-            'train': skeleton.utils.Timer(),
-            'test': skeleton.utils.Timer()
+            'train': skeleton2.utils.Timer(),
+            'test': skeleton2.utils.Timer()
         }
         self.info = {
             'dataset': {
@@ -58,21 +86,34 @@ class LogicModel(Model):
             'terminate': False
         }
 
-        # TODO: adaptive logic for hyper parameter
+        train_metadata_filename = self.metadata.get_dataset_name() + '/metadata.textproto'
+        num_train = \
+            [int(line.split(':')[1]) for line in open(train_metadata_filename, 'r').readlines()[:3] if
+             'sample_count' in line][0]
+        LOGGER.info('num_test:  %d', num_train)
 
+        _, resolution_0, _, num_channels = self.metadata.get_tensor_shape()
+        num_classes = self.info['dataset']['num_class']
+        feature = [num_channels, num_classes, num_train, resolution_0]
 
-        # 支持导入配置文件，可修改config_path
-        config_path = 'AutoDL_sample_code_submission/configs/configs_deepwis/config_deepwisdom_dataloading.yaml'
-        default_path = 'AutoDL_sample_code_submission/configs/config_deepblue.yaml'
-        print('Path: ', config_path)
+        pred_config_name = af.predict(np.array(feature))["pseudo_instance"][0][0]
+
+        # pred_config_name = AFCsvFacade.load_and_predict(vec=np.array(feature), load_fn=model_fn)
+
+        LOGGER.info("AF suggesting to use config: {}".format(pred_config_name))
+
+        config_path = Path(__file__).parents[
+                          4] / "configs" / "effnet_optimized_per_dataset_new_cs_new_data_03_14" / pred_config_name
+        config_path = config_path.with_suffix(".yaml")
 
         try:
-            with open(config_path) as in_stream:
-                print('Successfully loading config_path')
+            with config_path.open() as in_stream:
                 model_config = yaml.safe_load(in_stream)
+                LOGGER.info("Using config: {}".format(config_path))
         except:
-            with open(default_path) as in_stream:
+            with config_path.with_name("default.yaml").open() as in_stream:
                 model_config = yaml.safe_load(in_stream)
+                LOGGER.info("Using default config.")
 
         self.hyper_params = model_config["autocv"]
         skip_valid_after_test = min(10, max(3, int(self.info['dataset']['size'] // 1000)))
@@ -94,8 +135,8 @@ class LogicModel(Model):
         self.save_res = False
         self.preds=[]
         self.results=[]
-        # self.last_best_score=0
-        # self.is_fuse=False
+        self.last_best_score=0
+        self.is_fuse=False
         LOGGER.info('[init] done')
 
     def __repr__(self):
@@ -135,7 +176,7 @@ class LogicModel(Model):
     def build_or_get_train_dataloader(self, dataset):
         if not self.info['condition']['first']['train']:
             return self.build_or_get_dataloader('train')
-
+        print('--------------------------------------video------------------------------------')
         num_images = self.info['dataset']['size']
 
         # split train/valid
@@ -146,7 +187,7 @@ class LogicModel(Model):
         LOGGER.info('[%s] scan before', 'sample')
         num_samples = self.hyper_params['dataset']['train_info_sample']
         sample = dataset.take(num_samples).prefetch(buffer_size=num_samples)
-        train = skeleton.data.TFDataset(self.session, sample, num_samples)
+        train = skeleton2.data.TFDataset(self.session, sample, num_samples)
         self.info['dataset']['sample'] = train.scan(samples=num_samples)
         del train
         del sample
@@ -157,11 +198,21 @@ class LogicModel(Model):
         values = self.info['dataset']['sample']['example']['value']
         aspect_ratio = width / height
 
+        if times > 40:
+            self.hyper_params['dataset']['max_times'] = 8
+        elif times < 30:
+            self.hyper_params['dataset']['max_times'] = 4
+
+        if (width // 2) > 80:
+            self.hyper_params['dataset']['max_size'] = self.hyper_params['dataset']['max_size'] + 32
+
+        if num_images > 3000:
+            self.hyper_params['dataset']['steps_per_epoch'] = 30
+
         # fit image area to 64x64
-        if num_images > 8000 and (aspect_ratio > 2 or 1. / aspect_ratio > 2):
+        if aspect_ratio > 2 or 1. / aspect_ratio > 2:
             self.hyper_params['dataset']['max_size'] *= 2
-        if num_images < 8000:
-            self.hyper_params['dataset']['max_size'] = 128
+            
         size = [min(s, self.hyper_params['dataset']['max_size']) for s in [height, width]]
         # keep aspect ratio
         if aspect_ratio > 1: # w>h
@@ -227,7 +278,7 @@ class LogicModel(Model):
         if mode == 'train':
             batch_size = self.hyper_params['dataset']['batch_size']
             input_shape = self.hyper_params['dataset']['input']
-            preprocessor = get_tf_to_tensor(is_random_flip=True)
+            preprocessor = get_tf_to_tensor(is_random_flip=False)
             # dataset = dataset.prefetch(buffer_size=batch_size * 3)
 
             if num_items < enough_count:
@@ -243,16 +294,16 @@ class LogicModel(Model):
             )
             dataset = dataset.prefetch(buffer_size=batch_size * 8)
 
-            dataset = skeleton.data.TFDataset(self.session, dataset, num_items)
+            dataset = skeleton2.data.TFDataset(self.session, dataset, num_items)
 
             transform = tv.transforms.Compose([
                     # tv.transforms.RandomHorizontalFlip(),
                     # tv.transforms.RandomRotation(15),
                 # skeleton.data.Cutout(int(input_shape[1] // 4), int(input_shape[2] // 4)),
             ])
-            dataset = skeleton.data.TransformDataset(dataset, transform, index=0)
+            dataset = skeleton2.data.TransformDataset(dataset, transform, index=0)
 
-            self.dataloaders['train'] = skeleton.data.FixedSizeDataLoader(
+            self.dataloaders['train'] = skeleton2.data.FixedSizeDataLoader(
                 dataset,
                 steps=self.hyper_params['dataset']['steps_per_epoch'],
                 batch_size=batch_size,
@@ -280,7 +331,7 @@ class LogicModel(Model):
                 )
             ).prefetch(buffer_size=8)
 
-            dataset = skeleton.data.TFDataset(self.session, tf_dataset, num_items)
+            dataset = skeleton2.data.TFDataset(self.session, tf_dataset, num_items)
 
             LOGGER.info('[%s] scan before', mode)
             self.info['dataset'][mode], tensors = dataset.scan(
@@ -292,12 +343,12 @@ class LogicModel(Model):
 
             del tf_dataset
             del dataset
-            dataset = skeleton.data.prefetch_dataset(tensors)
+            dataset = skeleton2.data.prefetch_dataset(tensors)
 
             if 'valid' == mode:
                 transform = tv.transforms.Compose([
                 ])
-                dataset = skeleton.data.TransformDataset(dataset, transform, index=0)
+                dataset = skeleton2.data.TransformDataset(dataset, transform, index=0)
 
             self.dataloaders[mode] = torch.utils.data.DataLoader(
                 dataset,
@@ -332,8 +383,8 @@ class LogicModel(Model):
         LOGGER.debug('[CONDITION] best (epoch:%04d loss:%.2f score:%.2f) lr:%.8f time delta:%.2f',
                      best_epoch, best_loss, best_score, lr, consume)
 
-        if self.info['loop']['epoch'] > self.hyper_params['conditions']['early_epoch']:
-            self.dataloaders['train'].steps=30
+        # if self.info['loop']['epoch'] > self.hyper_params['conditions']['early_epoch']:
+        #     self.dataloaders['train'].steps=30
             
         if self.info['loop']['epoch'] <= self.hyper_params['conditions']['early_epoch']:
             LOGGER.info('[BREAK] early %d epoch', self.hyper_params['conditions']['early_epoch'])
@@ -382,6 +433,7 @@ class LogicModel(Model):
             LOGGER.info('[TERMINATE] not enough time to train (remain:%f need:%f)', remaining_time_budget, expected_more_time)
             self.info['terminate'] = True
             self.done_training = True
+            print('1')
             return True
 
         best_idx = np.argmax(np.array([c['valid']['score'] for c in self.checkpoints]))
@@ -391,6 +443,7 @@ class LogicModel(Model):
             done = True if self.info['terminate'] else False
             self.info['terminate'] = True
             self.done_training = done if self.is_video() else True
+            print('2')
             return True
 
         scores = [c['valid']['score'] for c in self.checkpoints]
@@ -402,6 +455,7 @@ class LogicModel(Model):
             done = True if self.info['terminate'] else False
             self.info['terminate'] = True
             self.done_training = done
+            print('3')
             return True
 
         if self.optimizer.get_learning_rate() < self.hyper_params['conditions']['min_lr']:
@@ -409,6 +463,7 @@ class LogicModel(Model):
             done = True if self.info['terminate'] else False
             self.info['terminate'] = True
             self.done_training = done
+            print('4')
             return True
 
         if self.info['loop']['epoch'] >= 20 and \
@@ -417,6 +472,7 @@ class LogicModel(Model):
             done = True if self.info['terminate'] else False
             self.info['terminate'] = True
             self.done_training = done
+            print('5')
             return True
 
         return False

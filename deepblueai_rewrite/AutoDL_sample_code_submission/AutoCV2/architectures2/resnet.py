@@ -7,7 +7,7 @@ import torchvision.models as models
 from torch.utils import model_zoo
 from torchvision.models.resnet import BasicBlock, model_urls, Bottleneck
 
-import skeleton
+import skeleton2 as skeleton
 
 formatter = logging.Formatter(fmt='[%(asctime)s %(levelname)s %(filename)s] %(message)s')
 

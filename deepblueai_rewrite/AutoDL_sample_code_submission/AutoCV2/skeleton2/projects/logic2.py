@@ -6,6 +6,7 @@ import tensorflow as tf
 import torchvision as tv
 import torch
 import numpy as np
+import yaml
 
 from .api2 import Model
 from .others2 import *
@@ -56,50 +57,21 @@ class LogicModel(Model):
             },
             'terminate': False
         }
+        # 支持导入配置文件，可修改config_path
+        config_path = 'AutoDL_sample_code_submission/configs/config_deepblue_video.yaml'
+        default_path = 'AutoDL_sample_code_submission/configs/config_deepblue_video.yaml'
+        print('Path: ', config_path)
+        try:
+            with open(config_path) as in_stream:
+                print('Successfully loading config_path')
+                model_config = yaml.safe_load(in_stream)
+        except:
+            with open(default_path) as in_stream:
+                model_config = yaml.safe_load(in_stream)
+        self.hyper_params = model_config["autocv"]
+        skip_valid_after_test = min(10, max(3, int(self.info['dataset']['size'] // 1000)))
+        self.hyper_params["conditions"]["skip_valid_after_test"] = skip_valid_after_test
 
-        # TODO: adaptive logic for hyper parameter
-        self.hyper_params = {
-            'optimizer': {
-                'lr': 0.025,
-            },
-            'dataset': {
-                'train_info_sample': 256,
-                'cv_valid_ratio': 0.2,
-                'max_valid_count': 256,
-
-                'max_size': 64,
-                'base': 16,  # input size should be multipliers of 16
-                'max_times': 8,
-
-                'enough_count': {
-                    'image': 10000,
-                    'video': 1000
-                },
-
-                'batch_size': 64,
-                'steps_per_epoch': 20,
-                'max_epoch': 1000,  # initial value
-                'batch_size_test': 256,
-            },
-            'checkpoints': {
-                'keep': 50
-            },
-            'conditions': {
-                'score_type': 'auc',
-                'early_epoch': 1,#
-                'skip_valid_score_threshold': 0.90,  # if bigger then 1.0 is not use
-                'skip_valid_after_test': min(10, max(3, int(self.info['dataset']['size'] // 1000))),
-                'test_after_at_least_seconds': 1,
-                'test_after_at_least_seconds_max': 90,
-                'test_after_at_least_seconds_step': 2,
-
-                'threshold_valid_score_diff': 0.001,
-                'threshold_valid_best_score': 0.997,
-                'max_inner_loop_ratio': 0.2,
-                'min_lr': 1e-6,
-                'use_fast_auto_aug': True
-            }
-        }
         self.checkpoints = []
         LOGGER.info('[init] build')
 
@@ -184,6 +156,7 @@ class LogicModel(Model):
         elif times < 30:
             self.hyper_params['dataset']['max_times'] = 4
 
+        print('*' * 50, self.hyper_params['dataset']['max_size'])
         if (width // 2) > 80:
             self.hyper_params['dataset']['max_size'] = self.hyper_params['dataset']['max_size'] + 32
 
