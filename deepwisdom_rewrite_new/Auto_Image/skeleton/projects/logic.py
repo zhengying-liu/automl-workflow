@@ -101,7 +101,7 @@ class LogicModel(Model):
         else:
             # Use Deepwisdom Config
             config_path = 'submission/configs_original/deepwisdom.yaml'
-            with config_path.open() as in_stream:
+            with open(config_path) as in_stream:
                 model_config = yaml.safe_load(in_stream)
 
 
