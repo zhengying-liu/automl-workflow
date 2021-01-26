@@ -2,6 +2,8 @@
 *.zip
 *.pkl
 *.csv
+*.pth
+*.tar
 
 # Mac
 *.DS_Store

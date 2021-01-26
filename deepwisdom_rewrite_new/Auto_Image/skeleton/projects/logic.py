@@ -2,8 +2,15 @@
 from __future__ import absolute_import
 
 import os
+here = os.path.dirname(__file__)
+submission_dir = os.path.join(here, os.pardir, os.pardir, os.pardir)
+submission_dir = os.path.abspath(submission_dir)
+ASlibScenario_dir = os.path.join(submission_dir, "ASlibScenario-master")
+autofolio_dir = os.path.join(submission_dir, "AutoFolio")
+
 os.system("pip install numpy==1.18.1")
-os.system("pip install submission/ASlibScenario-master")
+os.system("pip install {}".format(ASlibScenario_dir))
+os.system("pip install {}".format(autofolio_dir))
 os.system("pip install ConfigSpace")
 os.system("pip install pathlib")
 
@@ -71,7 +78,7 @@ class LogicModel(Model):
 
         if USE_FREIBURG_PARAMS:
             ### 导入预训练模型
-            model_fn = "submission/AutoFolio/af_model_final.pkl"
+            model_fn = os.path.join(submission_dir, "AutoFolio/af_model_final.pkl")
 
             train_metadata_filename = self.metadata.get_dataset_name() + '/metadata.textproto'
             num_train = \
@@ -87,7 +94,7 @@ class LogicModel(Model):
 
             LOGGER.info("AF suggesting to use config: {}".format(pred_config_name))
 
-            config_path = Path(
+            config_path = Path(submission_dir,
                 "configs", "effnet_optimized_per_dataset_new_cs_new_data_03_14", pred_config_name
             ).with_suffix(".yaml")
 
