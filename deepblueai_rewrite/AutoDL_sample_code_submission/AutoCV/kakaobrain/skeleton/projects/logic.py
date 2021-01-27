@@ -15,11 +15,24 @@ import yaml
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedShuffleSplit
 
+from pathlib import Path
+os.system("pip install Cython")
+os.system("pip install pyyaml")
+os.system("pip install liac-arff")
+os.system("pip install scipy")
+os.system("pip install pandas")
+os.system("pip install ConfigSpace")
+os.system("pip install numpy==1.18.1")
+os.system("pip3 install numpy==1.18.1")
+import sys
+sys.path.append('/data-nbd/lige/lg_workdir/AutoDL/autodl_starting_kit_stable_1208/AutoDL_sample_code_submission')
+from AutoFolio.autofolio.facade.af_csv_facade import AFCsvFacade
+# from autofolio.facade.af_csv_facade import AFCsvFaca
+
 import os
 here = os.path.dirname(__file__)
 submission_dir = os.path.join(here, os.pardir, os.pardir, os.pardir, os.pardir)
 submission_dir = os.path.abspath(submission_dir)
-
 
 LOGGER = get_logger(__name__)
 
@@ -27,6 +40,23 @@ LOGGER = get_logger(__name__)
 class LogicModel(Model):
     def __init__(self, metadata, session=None):
         super(LogicModel, self).__init__(metadata)
+
+        # freiburg
+        perf_fn = str(Path(__file__).parents[4] / "perf_matrix.csv")
+        feat_fn = str(Path(__file__).parents[4] / "meta_features.csv")
+        af = AFCsvFacade(perf_fn=perf_fn, feat_fn=feat_fn)
+
+        config = {'StandardScaler': False, 'fgroup_all': True, 'imputer_strategy': 'mean', 'pca': False,
+                  'selector': 'PairwiseClassifier',
+                  'classifier': 'RandomForest', 'rf:bootstrap': False, 'rf:criterion': 'gini', 'rf:max_depth': 132,
+                  'rf:max_features': 'log2', 'rf:min_samples_leaf': 3, 'rf:min_samples_split': 3, 'rf:n_estimators': 68}
+
+        LOGGER.info('--------- Fitting AF model ----------')
+
+        # fit AF using a loaded configuration on all data!
+        af.fit(config=config)
+
+
         LOGGER.info('--------- Model.metadata ----------')
         LOGGER.info('path: %s', self.metadata.get_dataset_name())
         LOGGER.info('shape:  %s', self.metadata.get_tensor_size(0))
@@ -67,17 +97,37 @@ class LogicModel(Model):
 
 
         # 支持导入配置文件，可修改config_path
-        config_path = os.path.join(submission_dir, 'configs/configs_deepwis/config_deepwisdom_dataloading.yaml')
-        default_path = os.path.join(submission_dir, 'configs/config_deepblue.yaml')
-        print('Path: ', config_path)
+        # config_path = 'AutoDL_sample_code_submission/configs/configs_deepwis/config_with_chucky_freiburg_params_and_dataloading.yaml'
+        # default_path = 'AutoDL_sample_code_submission/configs/config_deepblue.yaml'
+        # print('Path: ', config_path)
+        # get feature vector containing num_channels, num_classes, num_train, resolution_0
+        train_metadata_filename = self.metadata.get_dataset_name() + '/metadata.textproto'
+        num_train = \
+        [int(line.split(':')[1]) for line in open(train_metadata_filename, 'r').readlines()[:3] if
+            'sample_count' in line][0]
+        LOGGER.info('num_test:  %d', num_train)
+
+        _, resolution_0, _, num_channels = self.metadata.get_tensor_shape()
+        num_classes = self.info['dataset']['num_class']
+        feature = [num_channels, num_classes, num_train, resolution_0]
+
+        pred_config_name = af.predict(np.array(feature))["pseudo_instance"][0][0]
+
+        # pred_config_name = AFCsvFacade.load_and_predict(vec=np.array(feature), load_fn=model_fn)
+
+        LOGGER.info("AF suggesting to use config: {}".format(pred_config_name))
+
+        config_path = Path(__file__).parents[4] / "configs" / "effnet_optimized_per_dataset_new_cs_new_data_03_14" / pred_config_name
+        config_path = config_path.with_suffix(".yaml")
 
         try:
-            with open(config_path) as in_stream:
-                print('Successfully loading config_path')
+            with config_path.open() as in_stream:
                 model_config = yaml.safe_load(in_stream)
+                LOGGER.info("Using config: {}".format(config_path))
         except:
-            with open(default_path) as in_stream:
+            with config_path.with_name("default.yaml").open() as in_stream:
                 model_config = yaml.safe_load(in_stream)
+                LOGGER.info("Using default config.")
 
         self.hyper_params = model_config["autocv"]
         skip_valid_after_test = min(10, max(3, int(self.info['dataset']['size'] // 1000)))
