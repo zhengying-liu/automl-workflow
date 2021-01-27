@@ -25,9 +25,21 @@ os.system("pip install ConfigSpace")
 os.system("pip install numpy==1.18.1")
 os.system("pip3 install numpy==1.18.1")
 import sys
-sys.path.append('/data-nbd/lige/lg_workdir/AutoDL/autodl_starting_kit_stable_1208/AutoDL_sample_code_submission')
-from AutoFolio.autofolio.facade.af_csv_facade import AFCsvFacade
-# from autofolio.facade.af_csv_facade import AFCsvFaca
+# sys.path.append('/data-nbd/lige/lg_workdir/AutoDL/autodl_starting_kit_stable_1208/AutoDL_sample_code_submission')
+# from AutoFolio.autofolio.facade.af_csv_facade import AFCsvFacade
+# from autofolio.facade.af_csv_facade import AFCsvFacade
+
+import os
+here = os.path.dirname(__file__)
+submission_dir = os.path.join(here, os.pardir, os.pardir, os.pardir, os.pardir)
+submission_dir = os.path.abspath(submission_dir)
+ASlibScenario_dir = os.path.join(submission_dir, "ASlibScenario")
+autofolio_dir = os.path.join(submission_dir, "AutoFolio")
+
+os.system("pip install {}".format(ASlibScenario_dir))
+os.system("pip install {}".format(autofolio_dir))
+
+from autofolio.facade.af_csv_facade import AFCsvFacade
 
 LOGGER = get_logger(__name__)
 
@@ -108,7 +120,7 @@ class LogicModel(Model):
 
         pred_config_name = af.predict(np.array(feature))["pseudo_instance"][0][0]
 
-        #pred_config_name = AFCsvFacade.load_and_predict(vec=np.array(feature), load_fn=model_fn)
+        # pred_config_name = AFCsvFacade.load_and_predict(vec=np.array(feature), load_fn=model_fn)
 
         LOGGER.info("AF suggesting to use config: {}".format(pred_config_name))
 
