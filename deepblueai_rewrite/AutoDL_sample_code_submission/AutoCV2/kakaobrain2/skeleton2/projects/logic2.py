@@ -15,6 +15,11 @@ import skeleton2
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedShuffleSplit
 
+import os
+here = os.path.dirname(__file__)
+submission_dir = os.path.join(here, os.pardir, os.pardir, os.pardir)
+submission_dir = os.path.abspath(submission_dir)
+
 
 LOGGER = get_logger(__name__)
 

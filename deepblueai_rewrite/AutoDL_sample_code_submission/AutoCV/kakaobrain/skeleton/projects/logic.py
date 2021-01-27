@@ -15,6 +15,11 @@ import yaml
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedShuffleSplit
 
+import os
+here = os.path.dirname(__file__)
+submission_dir = os.path.join(here, os.pardir, os.pardir, os.pardir, os.pardir)
+submission_dir = os.path.abspath(submission_dir)
+
 
 LOGGER = get_logger(__name__)
 
@@ -62,8 +67,8 @@ class LogicModel(Model):
 
 
         # 支持导入配置文件，可修改config_path
-        config_path = 'AutoDL_sample_code_submission/configs/configs_deepwis/config_deepwisdom_dataloading.yaml'
-        default_path = 'AutoDL_sample_code_submission/configs/config_deepblue.yaml'
+        config_path = os.path.join(submission_dir, 'configs/configs_deepwis/config_deepwisdom_dataloading.yaml')
+        default_path = os.path.join(submission_dir, 'configs/config_deepblue.yaml')
         print('Path: ', config_path)
 
         try:
