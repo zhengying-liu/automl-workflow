@@ -99,21 +99,21 @@ class LogicModel(Model):
 
         LOGGER.info("AF suggesting to use config: {}".format(pred_config_name))
 
-        # config_path = Path(__file__).parents[3] / "configs" / "effnet_optimized_per_dataset_new_cs_new_data_03_14" / pred_config_name
-        # config_path = config_path.with_suffix(".yaml")
+        config_path = Path(__file__).parents[3] / "configs" / "effnet_optimized_per_dataset_new_cs_new_data_03_14" / pred_config_name
+        config_path = config_path.with_suffix(".yaml")
 
-        # 支持导入配置文件，可修改config_path
-        config_path = os.path.join(submission_dir, 'configs/configs_deepwis/config_deepwisdom_dataloading.yaml')
-        default_path = os.path.join(submission_dir, 'configs/config_deepblue.yaml')
-        print('Path: ', config_path)
+        # # 支持导入配置文件，可修改config_path
+        # config_path = os.path.join(submission_dir, 'configs/configs_deepwis/config_deepwisdom_dataloading.yaml')
+        # default_path = os.path.join(submission_dir, 'configs/config_deepblue.yaml')
+        # print('Path: ', config_path)
 
-        try:
-            with open(config_path) as in_stream:
-                print('Successfully loading config_path')
-                model_config = yaml.safe_load(in_stream)
-        except:
-            with open(default_path) as in_stream:
-                model_config = yaml.safe_load(in_stream)
+        # try:
+        #     with open(config_path) as in_stream:
+        #         print('Successfully loading config_path')
+        #         model_config = yaml.safe_load(in_stream)
+        # except:
+        #     with open(default_path) as in_stream:
+        #         model_config = yaml.safe_load(in_stream)
 
         try:
             with config_path.open() as in_stream:
