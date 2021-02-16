@@ -1,7 +1,6 @@
 # Data
 *.zip
 *.pkl
-*.csv
 *.pth
 *.tar
 
