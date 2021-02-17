@@ -562,38 +562,38 @@ class Model(LogicModel):
             self.hyper_params['conditions']['first_simple_model'] = False
 
             ####### Begin ensembling from DeepBlueAI ######
-            result = {
-                'valid_score': best_score,
-                'pred': predictions,
-            }
-            # if (best_score-self.last_best_score) > 0.05:
-                # self.results=[]
-            self.results.append(result)
-            # indices = np.argsort(
-                # np.array([v['valid_score'] for v in self.results] if len(self.results) > 0 else [0]))
-            # indices = sorted(indices[::-1][:5])
-            # self.results = [self.results[i] for i in indices]
+        #     result = {
+        #         'valid_score': best_score,
+        #         'pred': predictions,
+        #     }
+        #     # if (best_score-self.last_best_score) > 0.05:
+        #         # self.results=[]
+        #     self.results.append(result)
+        #     # indices = np.argsort(
+        #         # np.array([v['valid_score'] for v in self.results] if len(self.results) > 0 else [0]))
+        #     # indices = sorted(indices[::-1][:5])
+        #     # self.results = [self.results[i] for i in indices]
             
-            # with open('res.txt','a') as f:
-                # f.write('best_score:{},diff:{:.4f},train epoch:{},test epoch:{}\n'.\
-                        # format(best_score,best_score-self.last_best_score,\
-                               # self.info['loop']['epoch'],self.info['loop']['test'] ))
-            # f.close()
-            if (not self.is_fuse) and self.info['loop']['test'] >= self.hyper_params['conditions']['skip_valid_after_test'] and (best_score-self.last_best_score) < 0.01: # 
-                self.is_fuse=True
-            # if self.is_fuse:
-            if 5<self.info['loop']['test']<=10:
-                results=self.results[-2:]
-                predictions = np.array([v['pred'] for v in results])# self.info['loop']['epoch'] self.info['loop']['test']
-                res = np.mean(predictions, axis=0)
-            elif self.info['loop']['test'] > 10:#self.hyper_params['conditions']['skip_valid_after_test']
-                self.results=self.results[-5:]
-                predictions = np.array([v['pred'] for v in self.results])# self.info['loop']['epoch'] self.info['loop']['test']
-                res = np.mean(predictions, axis=0)
-            else:
-                res = predictions
-            self.last_best_score = best_score
-        return res
+        #     # with open('res.txt','a') as f:
+        #         # f.write('best_score:{},diff:{:.4f},train epoch:{},test epoch:{}\n'.\
+        #                 # format(best_score,best_score-self.last_best_score,\
+        #                        # self.info['loop']['epoch'],self.info['loop']['test'] ))
+        #     # f.close()
+        #     if (not self.is_fuse) and self.info['loop']['test'] >= self.hyper_params['conditions']['skip_valid_after_test'] and (best_score-self.last_best_score) < 0.01: # 
+        #         self.is_fuse=True
+        #     # if self.is_fuse:
+        #     if 5<self.info['loop']['test']<=10:
+        #         results=self.results[-2:]
+        #         predictions = np.array([v['pred'] for v in results])# self.info['loop']['epoch'] self.info['loop']['test']
+        #         res = np.mean(predictions, axis=0)
+        #     elif self.info['loop']['test'] > 10:#self.hyper_params['conditions']['skip_valid_after_test']
+        #         self.results=self.results[-5:]
+        #         predictions = np.array([v['pred'] for v in self.results])# self.info['loop']['epoch'] self.info['loop']['test']
+        #         res = np.mean(predictions, axis=0)
+        #     else:
+        #         res = predictions
+        #     self.last_best_score = best_score
+        # return res
         ####### End ensembling from DeepBlueAI ######
         
-        # return predictions
+        return predictions
