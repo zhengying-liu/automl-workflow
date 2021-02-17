@@ -99,7 +99,7 @@ class LogicModel(Model):
 
         LOGGER.info("AF suggesting to use config: {}".format(pred_config_name))
 
-        config_path = Path(__file__).parents[3] / "configs" / "effnet_optimized_per_dataset_new_cs_new_data_03_14" / pred_config_name
+        config_path = Path(__file__).parents[3] / "configs" / "effnet_optimized_per_dataset_new_cs_new_data_03_14_DeepWisdom" / pred_config_name
         config_path = config_path.with_suffix(".yaml")
 
         # # 支持导入配置文件，可修改config_path
