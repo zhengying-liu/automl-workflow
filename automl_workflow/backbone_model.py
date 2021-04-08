@@ -51,4 +51,4 @@ class MyBackboneModel3(nn.Module):
         return x
 
 
-# MyBackboneModel = MyBackboneModel1
+MyBackboneModel = MyBackboneModel3

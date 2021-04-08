@@ -8,11 +8,13 @@ import pandas as pd
 from skimage import io, transform
 import numpy as np
 
-class MyDataLoader(DataLoader):
+class MyDataLoader(object):
     """TODO: default PyTorch dataloader for train, validation, test, etc."""
     
-    def __init__(self, mode='train', *argv, **kwargs):
-        pass
+    def __call__(self, dataset, train=True):
+        pt_dataloader = torch.utils.data.DataLoader(dataset, batch_size=4,
+                                    shuffle=train, num_workers=2)
+        return pt_dataloader
 
 # DEMO
 
@@ -136,4 +138,14 @@ def face_dataset_demo():
     for i_batch, sample_batched in enumerate(dataloader):
         print(i_batch, sample_batched['image'].size(), sample_batched['landmarks'].size())
 
-face_dataset_demo()
+# face_dataset_demo()
+
+
+### Import CIFAR-10 training data loader ###
+
+from automl_workflow.cifar10_data_loader import trainloader, testloader, trainset, testset
+
+MyTrainSet = lambda: trainset
+MyTestSet = lambda: testset
+MyTrainDataLoader = lambda: trainloader
+MyTestDataLoader = lambda: testloader

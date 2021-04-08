@@ -108,34 +108,6 @@ class TFDataset(Dataset):
         return info
 
 
-# class IterableDataset(object):
-#     """Should be compatible with tf.data.Dataset, NumPy and 
-#     torch.utils.data.Dataset
-#     """
-
-#     def __iter__(self):
-#         """Each element should be a **list** of NumPy array-like objects. For 
-#         example, [example, label] where `example` and `label` are NumPy arrays.
-
-#         Predictions over one dataset also form an IterableDataset object.
-#         """
-#         raise NotImplementedError
-
-#     def generate_train_test_split(self, train_size=0.75):
-#         """Generate trai/test split from this dataset.
-        
-#         Args:
-#           train_size: float or int, If float, should be between 0.0 and 1.0 and 
-#             represent the proportion of the dataset to include in the train 
-#             split. If int, represents the absolute number of train samples.
-
-#         Returns:
-#           A tuple `(dataset_train, dataset_test)` where both `dataset_train`
-#             and `dataset_test` are IterableDataset objects.
-#         """
-#         raise NotImplementedError
-
-
 class FeatureUnion(IterableDataset):
 
     def __init__(self, datasets: List[IterableDataset]):
@@ -179,16 +151,6 @@ class BaseDataTransformer(object):
             new_dataset: IterableDataset
         """
         raise NotImplementedError
-
-
-class Learner(BaseDataTransformer):
-    """A machine learning model/learner. Its components include: initialization,
-    algorithm family (SVM, Random Forest, etc), values of hyper-paramters, 
-    optimizer.
-    
-    The usual `predict` method can be implemented by `transform` method.
-    """
-    pass
 
 
 
@@ -323,6 +285,56 @@ class Model(object):
         """
         predictions = self.pipeline.transform(dataset)
         return predictions
+
+
+
+class Task(object):
+
+    def __init__(self, train_set, metric, test_set=None):
+        self.train_set = train_set
+        self.test_set = test_set
+        self.metric = metric
+
+
+class Metric(object):
+
+    def __call__(self, y_pred, y_true):
+        """`y_pred` (and `y_true`) should be an iterable of several
+        predictions.
+        """
+        raise NotImplementedError
+
+
+class Learner(object):
+
+    def __init__(self, 
+        backbone_model=None,
+        data_loader=None,
+        data_ingestor=None,
+        data_augmentor=None,
+        ensembler=None,
+        optimizer=None,
+        loss_func=None,
+        ):
+        self.backbone_model = backbone_model
+        self.data_loader = data_loader
+        self.data_ingestor = data_ingestor
+        self.data_augmentor = data_augmentor
+        self.ensembler = ensembler
+        self.optimizer = optimizer
+        self.loss_func = loss_func
+
+    def learn(self, train_set):
+        """Return a Predictor object."""
+        raise NotImplementedError
+
+
+class Predictor(object):
+
+    def predict(self, x):
+        """Return the label of `x`."""
+        raise NotImplementedError
+
 
 
 ############## Example code ################

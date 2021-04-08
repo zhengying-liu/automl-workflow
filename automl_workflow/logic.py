@@ -1,8 +1,5 @@
-from .backbone_model import MyBackboneModel
-from .data_augmentor import MyDataAugmentor
-from .data_ingestor import MyDataIngestor
-from .data_loader import MyDataLoader
-from .ensembler import MyEnsembler
+from automl_workflow.task import my_task
+from automl_workflow.learner import MyLearner
 
 import torch
 import torchvision
@@ -11,26 +8,40 @@ from torch.utils.data import Dataset, DataLoader # Data Loader
 import torch.nn as nn
 
 
-class LogicModel():
+class Evaluator():
 
-    def __init__(self, metadata, session=None):
-        self.backbone = MyBackboneModel(metadata)
+    def __init__(self, task, learner):
+        self.task = task
+        self.learner = learner
 
-    def break_train_loop_condition(self, remaining_time_budget=None) -> bool:
-        raise NotImplementedError
+    def train(self):
+        train_set = self.task.train_set
+        self.predictor = self.learner.learn(train_set)
 
-    def get_num_epoch(self):
-        raise NotImplementedError
+    def test(self):
+        test_set = self.task.test_set
+        testloader = self.learner.data_loader(test_set, train=False)
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for data in testloader:
+                images, labels = data
+                outputs = self.learner.backbone_model(images) # TODO: use predictor
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
 
-    def train(self, dataset, remaining_time_budget=None):
-        dataset_train = MyDataIngestor(dataset)
-        self.iterable_dataset_train = MyDataLoader(model='train').transform(dataset_train)
-        while True:
-            self.backbone.fit(self.iterable_dataset_train)
-            if self.break_train_loop_condition(remaining_time_budget):
-                break
+        print('Accuracy of the network on the 10000 test images: %d %%' % (
+        100 * correct / total))
 
-    def test(self, dataset, remaining_time_budget=None):
-        dataset_test = MyDataIngestor(dataset)
-        self.iterable_dataset_test = MyDataLoader(model='test').transform(dataset_test)
-        return self.backbone.predict(self.iterable_dataset_test)
+    def evaluate(self):
+        self.train()
+        self.test()
+
+
+if __name__ == '__main__':
+    task = my_task
+    learner = MyLearner()
+    evaluator = Evaluator(task, learner)
+    evaluator.evaluate()
+

@@ -3,6 +3,7 @@
 *.pkl
 *.pth
 *.tar
+*/data/*
 
 # Mac
 *.DS_Store

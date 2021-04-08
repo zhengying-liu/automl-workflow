@@ -26,14 +26,15 @@ classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
-# net = backbone_model.MyBackboneModel1()
-# net = models.resnet18(pretrained=True)
-net = backbone_model.MyBackboneModel3()
-print(net)
+if __name__ == '__main__':
+    # net = backbone_model.MyBackboneModel1()
+    # net = models.resnet18(pretrained=True)
+    net = backbone_model.MyBackboneModel3()
+    print(net)
 
-for i, data in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-        inputs, labels = data
-        output = net(inputs)
-        print(output)
-        break
+    for i, data in enumerate(trainloader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = data
+            output = net(inputs)
+            print(output)
+            break
