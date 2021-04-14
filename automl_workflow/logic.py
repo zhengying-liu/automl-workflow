@@ -23,16 +23,23 @@ class Evaluator():
         testloader = self.learner.data_loader(test_set, train=False)
         correct = 0
         total = 0
+        metric = self.task.metric # revised using metric 
         with torch.no_grad():
             for data in testloader:
                 images, labels = data
-                outputs = self.learner.backbone_model(images) # TODO: use predictor
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+                # outputs = self.learner.backbone_model(images) # TODO: use predictor
+                # _, predicted = torch.max(outputs.data, 1)
+                predicted = self.predictor.predict(images) # revised using predictor
+                
+                score += metric(predicted, labels) # revised, 
+                # TODO: clarify how to define the metric of each batch
 
-        print('Accuracy of the network on the 10000 test images: %d %%' % (
-        100 * correct / total))
+                # total += labels.size(0)
+                # correct += (predicted == labels).sum().item()
+
+        # print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
+        # Revised, April 14, using metric
+
 
     def evaluate(self):
         self.train()

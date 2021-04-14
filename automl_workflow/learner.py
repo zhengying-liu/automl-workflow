@@ -35,4 +35,5 @@ class MyLearner(Learner):
         trainloader = self.data_loader(train_set, train=True)
         self.optimizer.optimize(self.backbone_model, trainloader)
         predictor = MyPredictor(self.backbone_model)
+        # TODO: add the loss function to do the actual learning here?
         return predictor
