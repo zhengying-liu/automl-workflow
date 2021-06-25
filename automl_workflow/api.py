@@ -186,7 +186,7 @@ class Pipeline(BaseDataTransformer):
 class HPOptimizer(object):
     """Adjust pipeline parameters in a data-driven way."""
 
-    def __init__(self, pipeline: Pipeline, params: Dict=None):
+    def __init__(self, pipeline: Pipeline=None, params: Dict=None):
         """
 
         Args:
@@ -305,7 +305,14 @@ class Metric(object):
         raise NotImplementedError
 
 
-class Learner(object):
+class ClassicLearner(object):
+
+    def learn(self, train_set: Dataset) -> Predictor:
+        """Return a Predictor object."""
+        raise NotImplementedError
+
+
+class Learner(ClassicLearner):
 
     def __init__(self, 
         backbone_model=None,
@@ -323,10 +330,6 @@ class Learner(object):
         self.ensembler = ensembler
         self.optimizer = optimizer
         self.loss_func = loss_func
-
-    def learn(self, train_set):
-        """Return a Predictor object."""
-        raise NotImplementedError
 
 
 class Predictor(object):
