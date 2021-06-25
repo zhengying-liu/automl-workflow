@@ -307,8 +307,8 @@ class Metric(object):
 
 class Predictor(object):
 
-    def predict(self, x):
-        """Return the label of `x`."""
+    def predict(self, test_set: Dataset) -> Dataset:
+        """Return the label of examples in `test_set`."""
         raise NotImplementedError
 
 
@@ -329,6 +329,7 @@ class Learner(ClassicLearner):
         ensembler=None,
         optimizer=None,
         loss_func=None,
+        hp_optimizer=None,
         ):
         self.backbone_model = backbone_model
         self.data_loader = data_loader
@@ -337,6 +338,7 @@ class Learner(ClassicLearner):
         self.ensembler = ensembler
         self.optimizer = optimizer
         self.loss_func = loss_func
+        self.hp_optimizer = hp_optimizer
 
 
 
