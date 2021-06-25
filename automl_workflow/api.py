@@ -305,6 +305,13 @@ class Metric(object):
         raise NotImplementedError
 
 
+class Predictor(object):
+
+    def predict(self, x):
+        """Return the label of `x`."""
+        raise NotImplementedError
+
+
 class ClassicLearner(object):
 
     def learn(self, train_set: Dataset) -> Predictor:
@@ -332,11 +339,7 @@ class Learner(ClassicLearner):
         self.loss_func = loss_func
 
 
-class Predictor(object):
 
-    def predict(self, x):
-        """Return the label of `x`."""
-        raise NotImplementedError
 
 
 
