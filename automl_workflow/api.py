@@ -172,7 +172,7 @@ class Pipeline(BaseDataTransformer):
         """Take a list of BaseDataTransformer objects, form one 
         BaseDataTransformer object by chaining them.
         """
-        raise NotImplementedError
+        pass
 
     def fit(self, dataset):
         """Apply `fit` and `transform` method of each transformer."""
@@ -194,7 +194,7 @@ class HPOptimizer(object):
           params: dict, e.g. {'transformer1': {'C':0.1, 'gamma':1.0}}. Initial
             hyper-parameters values.
         """
-        raise NotImplementedError
+        pass
 
     def fit(self, dataset: IterableDataset) -> Pipeline:
         """Adjust the parameters in the pipeline.
@@ -330,6 +330,7 @@ class Learner(ClassicLearner):
         optimizer=None,
         loss_func=None,
         hp_optimizer=None,
+        train_info=None,
         ):
         self.backbone_model = backbone_model
         self.data_loader = data_loader
@@ -339,6 +340,11 @@ class Learner(ClassicLearner):
         self.optimizer = optimizer
         self.loss_func = loss_func
         self.hp_optimizer = hp_optimizer
+        self.train_info = train_info
+
+
+class TrainInfo(dict):
+    pass
 
 
 
